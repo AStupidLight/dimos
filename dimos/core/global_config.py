@@ -32,6 +32,8 @@ class GlobalConfig(BaseSettings):
     robot_ips: str | None = None
     simulation: bool = False
     replay: bool = False
+    unitree_backend: str | None = None
+    unitree_dds_interface: str | None = None
     replay_dir: str = "go2_sf_office"
     new_memory: bool = False
     viewer: ViewerBackend = "rerun"
@@ -74,6 +76,8 @@ class GlobalConfig(BaseSettings):
             return "replay"
         if self.simulation:
             return "mujoco"
+        if self.unitree_backend is not None:
+            return self.unitree_backend
         return "webrtc"
 
     @property

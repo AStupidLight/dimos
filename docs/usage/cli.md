@@ -44,12 +44,12 @@ dimos [GLOBAL OPTIONS] COMMAND [ARGS]
 Values cascade (later overrides earlier):
 
 1. `GlobalConfig` default → `simulation = False`
-2. `.env` file → `DIMOS_SIMULATION=true`
-3. Environment variable → `export DIMOS_SIMULATION=true`
+2. `.env` file → `SIMULATION=true`
+3. Environment variable → `export SIMULATION=true`
 4. Blueprint definition → `.global_config(simulation=True)`
 5. CLI flag → `dimos --simulation run ...`
 
-Environment variables and `.env` values must be prefixed with `DIMOS_`.
+Environment variables and `.env` values map directly to `GlobalConfig` field names via pydantic-settings. For example, use `ROBOT_IP`, `ROBOT_IPS`, `SIMULATION`, `REPLAY`, `VIEWER`, `UNITREE_BACKEND`, and `UNITREE_DDS_INTERFACE` for the fields that currently exist in `GlobalConfig`.
 
 ---
 
@@ -328,4 +328,4 @@ Also available as `dimos rerun-bridge`.
 |------|----------|
 | `~/.local/state/dimos/runs/<run-id>.json` | Run registry (PID, blueprint, args, ports). Used by `status`/`stop`/`restart`. Cleaned up when processes exit. |
 | `~/.local/state/dimos/logs/<run-id>/main.jsonl` | Structured logs (main process + all workers) |
-| `.env` | Local config overrides (`DIMOS_ROBOT_IP=192.168.123.161`) |
+| `.env` | Local config overrides (`ROBOT_IP=192.168.123.161`, `UNITREE_BACKEND=dds`, `UNITREE_DDS_INTERFACE=enp2s0`, `SIMULATION=false`, `VIEWER=none`) |
