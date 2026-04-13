@@ -12,9 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import importlib.util
+import sys
+import types
 from typing import Protocol
 
 import pytest
+
+if importlib.util.find_spec("langchain_core") is None:
+    fake_langchain_core = types.ModuleType("langchain_core")
+    fake_langchain_tools = types.ModuleType("langchain_core.tools")
+    fake_langchain_tools.tool = lambda func=None, *args, **kwargs: func
+    fake_langchain_core.tools = fake_langchain_tools
+    sys.modules["langchain_core"] = fake_langchain_core
+    sys.modules["langchain_core.tools"] = fake_langchain_tools
 
 from dimos.core._test_future_annotations_helper import (
     FutureData,

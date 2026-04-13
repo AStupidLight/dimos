@@ -36,20 +36,48 @@ dimos --simulation run unitree-g1-basic-sim
 
 This runs the G1 in MuJoCo with the native A* navigation stack — same blueprint structure, simulated robot. Opens the command center at [localhost:7779](http://localhost:7779) with Rerun 3D visualization.
 
-## Run on Your G1
+## DDS Setup for Real Hardware
+
+DimOS is moving to a DDS-first control path for real Unitree G1 hardware. Use the vendored `unitree_sdk2_python` SDK together with CycloneDDS, especially in environments where WebRTC cannot connect reliably.
+
+### Runtime prerequisites
+
+- CycloneDDS installed on the host
+- If the SDK build cannot locate CycloneDDS automatically, export `CYCLONEDDS_HOME` or `CMAKE_PREFIX_PATH`
+- Install the vendored SDK from the repository path that exists in this repo
 
 ```bash
+conda activate agentic_subtask
+pip install -e '.[dev,dds]'
+export CYCLONEDDS_HOME=<path-to-cyclonedds-install>
+pip install -e unitreesdk/unitree_sdk2_python
+```
+
+### Run on your G1
+
+For real G1 hardware, prefer the DDS backend when WebRTC is unavailable or unreliable:
+
+```bash
+export UNITREE_BACKEND=dds
+export UNITREE_DDS_INTERFACE=<YOUR_NIC>
+dimos run unitree-g1-basic
+```
+
+`ROBOT_IP` is still relevant for the WebRTC backend, but it is not required for the DDS control path:
+
+```bash
+export UNITREE_BACKEND=webrtc
 export ROBOT_IP=<YOUR_G1_IP>
 dimos run unitree-g1-basic
 ```
 
-DimOS connects via WebRTC, starts the ROS navigation stack, and opens the command center.
+DimOS starts the G1 stack, uses the configured real-hardware backend, starts the ROS navigation stack, and opens the command center.
 
 ### What's Running
 
 | Module | What It Does |
 |--------|-------------|
-| **G1Connection** | WebRTC connection to the robot — streams video, odometry |
+| **G1Connection** | G1 real-hardware connection module — prefers DDS or WebRTC according to `UNITREE_BACKEND` |
 | **Webcam** | ZED camera capture (stereo left, 15 fps) |
 | **VoxelGridMapper** | Builds a 3D voxel map using column-carving (CUDA accelerated) |
 | **CostMapper** | Converts 3D map → 2D costmap via terrain slope analysis |
@@ -71,7 +99,8 @@ Natural language control with an LLM agent that understands physical space and c
 
 ```bash
 export OPENAI_API_KEY=<YOUR_KEY>
-export ROBOT_IP=<YOUR_G1_IP>
+export UNITREE_BACKEND=dds
+export UNITREE_DDS_INTERFACE=<YOUR_NIC>
 dimos run unitree-g1-agentic
 ```
 
@@ -119,7 +148,8 @@ The G1 agent can perform expressive arm gestures:
 Direct keyboard control via a pygame-based joystick:
 
 ```bash
-export ROBOT_IP=<YOUR_G1_IP>
+export UNITREE_BACKEND=dds
+export UNITREE_DDS_INTERFACE=<YOUR_NIC>
 dimos run unitree-g1-joystick
 ```
 

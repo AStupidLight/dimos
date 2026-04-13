@@ -14,6 +14,7 @@
 
 
 from abc import ABC, abstractmethod
+from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
 from reactivex.disposable import Disposable
@@ -25,13 +26,28 @@ from dimos.core.module import Module
 from dimos.core.module_coordinator import ModuleCoordinator
 from dimos.core.stream import In
 from dimos.msgs.geometry_msgs import Twist
-from dimos.robot.unitree.connection import UnitreeWebRTCConnection
 from dimos.utils.logging_config import setup_logger
 
 if TYPE_CHECKING:
     from dimos.core.rpc_client import ModuleProxy
 
 logger = setup_logger()
+
+
+def _create_backend(connection_type: str, ip: str | None, dds_interface: str | None) -> Any:
+    if connection_type == "webrtc":
+        if ip is None:
+            raise ValueError("IP address must be provided")
+        backend_module = import_module("dimos.robot.unitree.connection")
+        return backend_module.UnitreeWebRTCConnection(ip)
+    if connection_type == "dds":
+        backend_module = import_module("dimos.robot.unitree.g1.dds_connection")
+        return backend_module.UnitreeG1DDSConnection(interface=dds_interface)
+    if connection_type == "replay":
+        raise ValueError("Replay connection not implemented for G1 robot")
+    if connection_type == "mujoco":
+        raise ValueError("This module does not support simulation, use G1SimConnection instead")
+    raise ValueError(f"Unknown connection type: {connection_type}")
 
 
 class G1ConnectionBase(Module, ABC):
@@ -67,7 +83,7 @@ class G1Connection(G1ConnectionBase):
     connection_type: str | None = None
     _global_config: GlobalConfig
 
-    connection: UnitreeWebRTCConnection | None
+    connection: Any | None
 
     def __init__(
         self,
@@ -87,20 +103,11 @@ class G1Connection(G1ConnectionBase):
     def start(self) -> None:
         super().start()
 
-        match self.connection_type:
-            case "webrtc":
-                assert self.ip is not None, "IP address must be provided"
-                self.connection = UnitreeWebRTCConnection(self.ip)
-            case "replay":
-                raise ValueError("Replay connection not implemented for G1 robot")
-            case "mujoco":
-                raise ValueError(
-                    "This module does not support simulation, use G1SimConnection instead"
-                )
-            case _:
-                raise ValueError(f"Unknown connection type: {self.connection_type}")
-
-        assert self.connection is not None
+        self.connection = _create_backend(
+            self.connection_type,
+            self.ip,
+            self._global_config.unitree_dds_interface,
+        )
         self.connection.start()
 
         self._disposables.add(Disposable(self.cmd_vel.subscribe(self.move)))
@@ -133,4 +140,4 @@ def deploy(dimos: ModuleCoordinator, ip: str, local_planner: spec.LocalPlanner) 
     return connection
 
 
-__all__ = ["G1Connection", "G1ConnectionBase", "deploy", "g1_connection"]
+__all__ = ["G1Connection", "G1ConnectionBase", "_create_backend", "deploy", "g1_connection"]
